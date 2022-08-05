@@ -7,9 +7,6 @@ TODO: README
 """
 
 from setuptools import setup
-import os
-import sys
-
 
 VER_MAJ = 0
 VER_MIN = 0
@@ -24,7 +21,6 @@ PKG_DESC_LONG = """
 """
 
 
-
 def setup_package():
     setup(
         name="adrtools",
@@ -37,6 +33,7 @@ def setup_package():
         long_description_content_type="text/markdown",
         author="Stefan Olivier",
         author_email="s.olivier1194@gmail.com",
+        platforms=["Windows", "Linux", "Unix", "Mac OS-X"],
         install_requires=[],
         classifiers=[
             "Development Status :: 1 - Planning",
@@ -51,3 +48,4 @@ def setup_package():
 
 if __name__ == "__main__":
     setup_package()
+    del setup
