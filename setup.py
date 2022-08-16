@@ -25,7 +25,8 @@ def setup_package():
     setup(
         name="adrtools",
         version=VERSION,
-        packages=["adrtools"],
+        include_dirs=['adrtools'],
+        requires=['tableschema', 'docx', 'fuzzywuzzy']
         url="https://github.com/SoulXP/adrtools",
         license="MIT",
         description=PKG_DESC_SHORT,
