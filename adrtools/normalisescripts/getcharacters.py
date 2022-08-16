@@ -42,27 +42,6 @@ def process(paths, schema, ext, out, prefix, split_names, dry_run):
                 print(n)
 
 
-
-def group_items(items, size):
-    groups = []
-    group = []
-    assert len(items) >= size
-    n = 0
-    reverse_n = len(items) - 1
-    for i, item in enumerate(items):
-        group.append(item)
-
-        if n == size - 1 or reverse_n == 0:
-            groups.append(list.copy(group))
-            group.clear()
-            n = 0
-        else:
-            n += 1
-        reverse_n -= 1
-
-    return groups
-
-
 def get_script_characters(path):
     names = []
     if os.path.isfile(path):
@@ -108,7 +87,7 @@ def main():
 
     all_paths = adr.get_ext_files(args.paths, args.ext)
     group_size = math.ceil(len(all_paths) / max_proc)
-    grouped_paths = group_items(all_paths, group_size)
+    grouped_paths = adr.group_items(all_paths, group_size)
 
     print(f'group size: {group_size}')
 
