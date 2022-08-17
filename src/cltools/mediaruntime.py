@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import argparse
 import json
 import os
@@ -29,6 +27,7 @@ def hms_parts(hms):
     return h, m, s
 
 def ffprobe_dur_to_tc(path):
+    # TODO: check if ffprobe is in user path
     abs_path = os.path.abspath(path)
     cmd_args = ['ffprobe',
                 '-v',

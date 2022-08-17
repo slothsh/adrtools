@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
-
-import adr
+from pft import script_to_list
+from utils import validate_directory, get_ext_files, group_items
 import argparse
 import math
 import multiprocessing as mp
@@ -28,7 +27,7 @@ def process(paths, schema, ext, out, prefix, split_names, dry_run):
     for p in paths:
         name = os.path.basename(p).split('.')[0]
         out_path = os.path.join(out, f'{name}_{prefix}.names')
-        tbl_list = adr.script_to_list(p, schema_path=schema)
+        tbl_list = script_to_list(p, schema_path=schema)
         raw_names = itertools.chain.from_iterable([[y[1] for y in x if y[0] == 'speaker'] for x in tbl_list])
         if split_names is True:
             raw_names = set(split_characters(raw_names))
@@ -45,7 +44,7 @@ def process(paths, schema, ext, out, prefix, split_names, dry_run):
 def get_script_characters(path):
     names = []
     if os.path.isfile(path):
-        data = adr.script_to_list(path, './headerschema.json')
+        data = script_to_list(path, './headerschema.json')
         for d in data:
             names.append(d['character'])
         return names
@@ -77,7 +76,7 @@ def main():
     if write_type not in valid_write_types:
         write_type = 'a'
 
-    valid_out_path, out_path = adr.validate_directory(args.out)
+    valid_out_path, out_path = validate_directory(args.out)
     if not valid_out_path:
         print(f'Please specify a valid output path\nspecified path: {out_path}')
         sys.exit(1)
@@ -85,9 +84,9 @@ def main():
     max_proc = min(max(1, args.process_count), os.cpu_count())
     print(f'total cpus: {os.cpu_count()}, user selected: {max_proc}')
 
-    all_paths = adr.get_ext_files(args.paths, args.ext)
+    all_paths = get_ext_files(args.paths, args.ext)
     group_size = math.ceil(len(all_paths) / max_proc)
-    grouped_paths = adr.group_items(all_paths, group_size)
+    grouped_paths = group_items(all_paths, group_size)
 
     print(f'group size: {group_size}')
 

@@ -1,8 +1,25 @@
-from statistics import mean
+from statistics import mean, mode
+from fuzzywuzzy import fuzz as fzw
+import json
+from docx import Document
+import os
+from utils import round_nearest, tbl_contains_all_fields
+
+
+# ----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+#  @SECTION: Globals
+# ----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+
 
 SPEAKER_CASTING_DEFAULT = 'CAST ME'
 LEVENSHTEIN_DT_DEFAULT = 75
 SPEAKER_NAME_DEFAULT = 'UNKNOWN'
+
+
+# ----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+#  @SECTION: Characters & Castings
+# ----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+
 
 def aggregate_castings(data):
     aggregated = []
@@ -27,7 +44,7 @@ def find_speaker_aliases(targets, names_list, ratio=LEVENSHTEIN_DT_DEFAULT):
         used = []
         for n in names_list:
             alias_not_used = len([x for x in used if x.lower() == n.lower()]) == 0
-            current_ratio = fuzz.ratio(t.lower(), n.lower())
+            current_ratio = fzw.ratio(t.lower(), n.lower())
 
             gte_ratio = current_ratio >= ratio
             ne_current_name = t.lower() != n.lower()
@@ -67,6 +84,38 @@ def map_characters_to_castings(characters, castings):
         collect.clear()
 
     return mapping
+
+
+def speaker_to_casting(speaker, config, ratio=LEVENSHTEIN_DT_DEFAULT):
+    assert len(speaker) > 0, speaker
+    assert 'speakers' in config
+
+    cfg_data = [x for x in config['speakers']]
+
+    age_casting = SPEAKER_CASTING_DEFAULT
+    for entry in cfg_data:
+        gender = entry['casting']['gender']
+        lo = str(entry['casting']['lo']).rjust(2, '0')
+        hi = str(entry['casting']['hi']).rjust(2, '0')
+
+        nicknames = [x.lower() for x in entry['nicknames']]
+        if speaker.lower() == entry['name'].lower() or speaker.lower() in nicknames:
+            return entry['name'], f'{gender}{lo}-{hi}'
+
+    fuzzed_names = sorted([(x["name"],
+                            fzw.ratio(speaker, x["name"]),
+                            f'{x["casting"]["gender"]}{str(x["casting"]["lo"]).rjust(2, "0")}-{str(x["casting"]["hi"]).rjust(2, "0")}') for x in cfg_data if fzw.ratio(speaker, x["name"]) > ratio],
+                          reverse=True, key=lambda x: x[1])
+
+    if len(fuzzed_names) > 0:
+        return fuzzed_names[0][0], fuzzed_names[0][2]
+
+    return speaker, age_casting
+
+
+# ----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
+#  @SECTION: Dubbing/ADR Script Parsing
+# ----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
 
 
 def normalised_script(path, schema_path, speaker_config_path, ratio=LEVENSHTEIN_DT_DEFAULT):
@@ -183,31 +232,21 @@ def script_to_list(path, schema_path):
     return data
 
 
-def speaker_to_casting(speaker, config, ratio=LEVENSHTEIN_DT_DEFAULT):
-    assert len(speaker) > 0, speaker
-    assert 'speakers' in config
+def tbl_column_by_index(path, index, schema_path):
+    data = script_to_list(path, schema_path)
+    if len(data) == 0:
+        return []
 
-    cfg_data = [x for x in config['speakers']]
+    data.pop(0)
 
-    age_casting = SPEAKER_CASTING_DEFAULT
-    for entry in cfg_data:
-        gender = entry['casting']['gender']
-        lo = str(entry['casting']['lo']).rjust(2, '0')
-        hi = str(entry['casting']['hi']).rjust(2, '0')
+    collect = []
+    for line in data:
+        k, v = line.items()
+        for i, e in enumerate(line):
+            if i == index:
+                collect.append(v)
 
-        nicknames = [x.lower() for x in entry['nicknames']]
-        if speaker.lower() == entry['name'].lower() or speaker.lower() in nicknames:
-            return entry['name'], f'{gender}{lo}-{hi}'
-
-    fuzzed_names = sorted([(x["name"],
-                            fuzz.ratio(speaker, x["name"]),
-                            f'{x["casting"]["gender"]}{str(x["casting"]["lo"]).rjust(2, "0")}-{str(x["casting"]["hi"]).rjust(2, "0")}') for x in cfg_data if fuzz.ratio(speaker, x["name"]) > ratio],
-                          reverse=True, key=lambda x: x[1])
-
-    if len(fuzzed_names) > 0:
-        return fuzzed_names[0][0], fuzzed_names[0][2]
-
-    return speaker, age_casting
+    return collect
 
 
 def tbl_column_by_name(path, name):
@@ -232,22 +271,3 @@ def tbl_column_by_name(path, name):
                 collect.append(v)
 
     return collect
-
-
-def tbl_column_by_index(path, index, schema_path):
-    data = script_to_list(path, schema_path)
-    if len(data) == 0:
-        return []
-
-    data.pop(0)
-
-    collect = []
-    for line in data:
-        k, v = line.items()
-        for i, e in enumerate(line):
-            if i == index:
-                collect.append(v)
-
-    return collect
-
-

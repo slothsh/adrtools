@@ -25,9 +25,15 @@ def setup_package():
     setup(
         name="adrtools",
         version=VERSION,
-        include_dirs=['adrtools'],
-        requires=['tableschema', 'docx', 'fuzzywuzzy']
         url="https://github.com/SoulXP/adrtools",
+        entry_points={
+            'console_scripts': [
+                'adr-pftscript2tsv = cltools.pftscript2tsv:main',
+                'adr-pftgenspeakers = cltools.pftgenspeakers:main',
+                'adr-pftgetcharacters = cltools.pftgetcharacters:main',
+                'adr-mediaruntime = cltools.mediaruntime:main'
+            ]
+        },
         license="MIT",
         description=PKG_DESC_SHORT,
         long_description=PKG_DESC_LONG,
@@ -35,7 +41,7 @@ def setup_package():
         author="Stefan Olivier",
         author_email="s.olivier1194@gmail.com",
         platforms=["Windows", "Linux", "Unix", "Mac OS-X"],
-        install_requires=[],
+        install_requires=['docx', 'tableschema', 'fuzzywuzzy'],
         classifiers=[
             "Development Status :: 1 - Planning",
             "License :: OSI Approved :: MIT License",

@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
-
-import argparse
-import adr
-from adr import eprint
+from debug.console import eprint
+from pft import normalised_script
+from utils import file_names, get_ext_files, group_items, validate_directory
 import os
 import sys
+import argparse
 import math
 import multiprocessing as mp
+
 
 
 def process(paths, schema, cfg_path, ratio, ext, out, prefix, dry_run):
@@ -14,13 +14,13 @@ def process(paths, schema, cfg_path, ratio, ext, out, prefix, dry_run):
         all_lines = None
 
         try:
-            all_lines = adr.normalised_script(data_path, schema, cfg_path, ratio)
+            all_lines = normalised_script(data_path, schema, cfg_path, ratio)
         except Exception as e:
             eprint(f'error: failed to normalise script: {data_path}')
             eprint(f'message: {e}')
             continue
 
-        out_tokens = adr.file_names(data_path)
+        out_tokens = file_names(data_path)
         file_name = os.path.join(out, f'{out_tokens[0].upper()}_{out_tokens[1].upper()}.gen.TAB')
         with open(file_name, 'w') as file:
             for line in all_lines:
@@ -64,7 +64,7 @@ def main():
     if os.path.isfile(table_schema) is False:
         errors.append(f'error: path to table schema file is invalid at {table_schema}')
 
-    valid_out_path, out_path = adr.validate_directory(args.out)
+    valid_out_path, out_path = validate_directory(args.out)
     if not valid_out_path:
         errors.append(f'Please specify a valid output path\nspecified path: {out_path}')
 
@@ -80,9 +80,9 @@ def main():
 
     max_proc = min(max(1, args.process_count), os.cpu_count())
 
-    all_paths = adr.get_ext_files(args.paths, args.ext)
+    all_paths = get_ext_files(args.paths, args.ext)
     group_size = math.ceil(len(all_paths) / max_proc)
-    grouped_paths = adr.group_items(all_paths, group_size)
+    grouped_paths = group_items(all_paths, group_size)
 
     print(f'total cpus: {os.cpu_count()}, user selected: {max_proc}')
     print(f'group size: {group_size}')

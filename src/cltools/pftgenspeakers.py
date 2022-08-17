@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-
-import adr
-from adr import eprint
+from pft import map_characters_to_castings, aggregate_castings, find_speaker_aliases
+from debug import eprint
 import argparse
 import os
 import sys
@@ -54,9 +52,9 @@ def main():
         eprint(f'error: no names available in file: {aliases_path}')
         sys.exit(1)
 
-    data = adr.map_characters_to_castings(characters, castings)
-    aggregated = adr.aggregate_castings(data)
-    sorted_aliases = adr.find_speaker_aliases([x[0] for x in aggregated], [x.strip() for x in aliases], args.ratio)
+    data = map_characters_to_castings(characters, castings)
+    aggregated = aggregate_castings(data)
+    sorted_aliases = find_speaker_aliases([x[0] for x in aggregated], [x.strip() for x in aliases], args.ratio)
     results = [
             {
                 'name': v[0],

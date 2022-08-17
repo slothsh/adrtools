@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from timecode import Timecode
 
 FPS_DEFAULT = 25.0
