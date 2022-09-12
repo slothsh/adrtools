@@ -45,7 +45,6 @@ class EntityNode:
     @staticmethod
     def parse_speaker_expression(expression: str):
         # pre-conditions
-
         delimiter_save = ''
         transfer = ''
         find_listeners = False
@@ -74,6 +73,7 @@ class EntityNode:
 
             # multiple speakers case
             if  found_delimiter is False and find_listeners is False and c.lower() == ',' and transfer.strip() != '':
+                speakers
                 speakers.append(transfer.strip())
                 transfer = ''
 

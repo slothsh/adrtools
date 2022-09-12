@@ -68,7 +68,7 @@ def main():
 
     tc, fps = ffprobe_dur_to_tc(args.path)
 
-    print(f'{args.path}: {tc}')
+    print(f'{args.path}: fps: {fps}\trun time: {tc}')
 
 
 if __name__ == "__main__":
