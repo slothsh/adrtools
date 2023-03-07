@@ -206,7 +206,7 @@ def normalised_script(path, schema_path, speaker_config_path, ratio=LEVENSHTEIN_
                 prev_end = fix_tc_frame_rate(value.strip(), '25')
 
             if title == 'speaker':
-                characters_raw = [SPEAKER_NAME_DEFAULT] if value.strip() == '' else [x for x in value.split(',') if x.strip() != '']
+                characters_raw = [SPEAKER_NAME_DEFAULT] if value.strip() == '' else [x.replace("\n", " ") for x in value.split(',') if x.strip() != '']
                 for c in characters_raw:
                     names = c[0].lower().strip() if c.strip() == '' else c.lower().split(' to ')[0].strip()
                     additional['start'] = prev_start
@@ -236,7 +236,8 @@ def normalised_script(path, schema_path, speaker_config_path, ratio=LEVENSHTEIN_
                     collect_index = min(li, len(collect) - 1)
                     current_speaker = collect[collect_index]['character']
                     existing_line = collect[collect_index]['line']
-                    stripped = ll.strip().replace('\n', ' ')
+                    # stripped = ll.strip().replace('\n', ' ').replace("'", "").replace('"', '')
+                    stripped = "".join([x for x in ll.strip() if x not in "'\""]).replace("\n", " ")
 
                     if existing_line == '':
                         collect[collect_index]['line'] = f'[{current_speaker}] {stripped}'
