@@ -6,15 +6,46 @@ import sys
 import argparse
 import math
 import multiprocessing as mp
+from termcolor import colored
+from chrono import timeregion_make_subsequences, TimeRegion
 
+PROGRAM_NAME = "script2tsv"
 
 
 def process(paths, schema, cfg_path, ratio, ext, out, prefix, dry_run):
     for data_path in paths:
         all_lines = None
+        sorted_cues = []
 
         try:
+            print(f"{PROGRAM_NAME}: [{colored('-', 'yellow')}] processing file @ {data_path}")
             all_lines = normalised_script(data_path, schema, cfg_path, ratio)
+            all_lines.pop(0)
+
+            characters = {c['character']: [] for c in all_lines}
+
+            for (k, v) in characters.items():
+                cues = timeregion_make_subsequences(sorted([{
+                                                        'age': x['age'],
+                                                        'character': k,
+                                                        'line': x['line'].replace(f"[{k}]", ""),
+                                                        'region': TimeRegion.from_timecode_strings(x['start'], x['end'])
+                                                    } for x in all_lines if k == x['character']], key=lambda x: x["region"]._start), ["UNKNOWN"])
+                characters[k] = cues
+
+            flattened_cues = []
+            for k, v in characters.items():
+                for e in v:
+                    flattened_cues.append({
+                                              'start': str(e['region']._start),
+                                              'end': str(e['region']._end),
+                                              'actor': e['age'],
+                                              'character': k,
+                                              'line': e['line'],
+                                          })
+
+            sorted_cues = sorted(flattened_cues, key=lambda x: x['start'])
+
         except Exception as e:
             eprint(f'error: failed to normalise script: {data_path}')
             eprint(f'message: {e}')
@@ -22,14 +53,19 @@ def process(paths, schema, cfg_path, ratio, ext, out, prefix, dry_run):
 
         out_tokens = file_names(data_path)
         file_name = os.path.join(out, f'{out_tokens[0].upper()}_{out_tokens[1].upper()}.gen.TAB')
-        with open(file_name, 'w') as file:
-            for line in all_lines:
-                for k, v in line.items():
-                    file.write(v)
-                    file.write('\t')
-                file.write('\n')
-            file.close()
-        all_lines.clear()
+        if not dry_run:
+            with open(file_name, 'w') as file:
+                file.write("#\ttcin\ttcout\tcharacter\tactor\tline\n")
+                for i, line in enumerate(sorted_cues):
+                    file.write(f"{i}\t{line['start']}\t{line['end']}\t{line['character']}\t{line['actor']}\t[{line['character']}] {line['line']}\n")
+                file.close()
+            all_lines.clear()
+        else:
+            print('')
+            for line in sorted_cues:
+                print(f"{line['start']}\t{line['end']}\t{line['character']}\t{line['actor']}\t[{line['character']}] {line['line']}")
+
+        print(f"{PROGRAM_NAME}: [{colored('+', 'green')}] completed file @ {data_path}")
 
 
 def main():
@@ -55,7 +91,6 @@ def main():
     args = parser.parse_args()
 
     errors = []
-
     cfg_path = os.path.abspath(args.speaker_cfg[0])
     if os.path.isfile(cfg_path) is False:
         errors.append(f'error: path to speaker configuration is invalid at {cfg_path}')
@@ -103,7 +138,6 @@ def main():
         p.start()
 
     keep_alive = True
-    print('Processing Files...')
     while keep_alive:
         prev = False
         for p in pool:

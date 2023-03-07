@@ -59,11 +59,13 @@ def main():
             {
                 'name': v[0],
                 'nicknames': v[1],
-                'casting': v[2],
-                'aliases': v[3]
+                'ignore': v[2],
+                'casting': v[3],
+                'aliases': v[4]
             } for v in [x for x in zip([x[0] for x in aggregated],
                                        [x[1] for x in aggregated],
-                                       [{'gender': x[2], 'lo': x[3], 'hi': x[4]} for x in aggregated],
+                                       [x[2] for x in aggregated],
+                                       [{'gender': x[3], 'lo': x[4], 'hi': x[5]} for x in aggregated],
                                        [[{'ratio': y[0], 'alias': y[1]} for y in x[1]] for x in sorted_aliases])]
     ]
 

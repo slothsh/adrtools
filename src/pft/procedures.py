@@ -1,5 +1,6 @@
 from statistics import mean, mode
 from fuzzywuzzy import fuzz as fzw
+import re
 import json
 from docx import Document
 import os
@@ -12,9 +13,21 @@ from utils import round_nearest, tbl_contains_all_fields
 
 
 SPEAKER_CASTING_DEFAULT = 'CAST ME'
-LEVENSHTEIN_DT_DEFAULT = 75
+LEVENSHTEIN_DT_DEFAULT = 80
 SPEAKER_NAME_DEFAULT = 'UNKNOWN'
-
+SPEAKER_VARIATION_WORDS = [
+    '\'s +voice',
+    ' +voice',
+    ' +on +phone',
+    ' +over +call',
+    ' +on +call',
+    ' +thinking',
+    ' +in +head',
+    '\'s +inside +voice',
+    ' +inside +voice',
+    '\'s +mind +voice',
+    ' +mind +voice'
+]
 
 # ----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
 #  @SECTION: Characters & Castings
@@ -25,16 +38,26 @@ def aggregate_castings(data):
     aggregated = []
     for d in data:
         character = d[0]
-        if len(d[2]) > 0:
-            mode_gender = mode([x[0] for x in d[2]])
-            avg_lo = round_nearest(mean([x[1] for x in d[2]]), 5)
-            avg_hi = round_nearest(mean([x[2] for x in d[2]]), 5)
+        if len(d[3]) > 0:
+            mode_gender = mode([x[0] for x in d[3]])
+            avg_lo = round_nearest(mean([x[1] for x in d[3]]), 5)
+            avg_hi = round_nearest(mean([x[2] for x in d[3]]), 5)
             if avg_lo >= avg_hi:
                 age_dt = 5 if (mode_gender.upper() == 'M' or mode_gender.upper() == 'F') else 3
                 avg_lo = avg_hi - age_dt
-            aggregated.append((character, list.copy(d[1]), mode_gender.upper(), int(avg_lo), int(avg_hi)))
+            aggregated.append((character, list.copy(d[1]), list.copy(d[2]), mode_gender.upper(), int(avg_lo), int(avg_hi)))
 
     return aggregated
+
+
+def extract_variation_word(speaker):
+    cleaned_speaker = speaker.lower().strip()
+
+    for v in SPEAKER_VARIATION_WORDS:
+        if re.search(f"{v}", cleaned_speaker) is not None:
+            return v
+
+    return None
 
 
 def find_speaker_aliases(targets, names_list, ratio=LEVENSHTEIN_DT_DEFAULT):
@@ -66,21 +89,46 @@ def fix_tc_frame_rate(tc, fps):
     return f'{chunks[0]}:{chunks[1]}:{chunks[2]}:{chunks[3]}'
 
 
+def is_globbed_speaker(speaker):
+    cleaned_speaker = speaker.lower().strip()
+    return re.search("everyone|multiple|multiple +voice|multiple +voices", cleaned_speaker) is not None
+
+
+def is_variation_of_speaker(speaker):
+    cleaned_speaker = speaker.lower().strip()
+
+    for v in SPEAKER_VARIATION_WORDS:
+        if re.search(f"{v}", cleaned_speaker) is not None:
+            return True
+
+    return False
+
+
+def is_regular_speaker(speaker):
+    cleaned_speaker = speaker.lower().strip()
+    return not is_globbed_speaker(cleaned_speaker) and not is_variation_of_speaker(cleaned_speaker)
+
+
 def map_characters_to_castings(characters, castings):
     list.sort(castings)
     mapping = []
     for ch in characters:
         collect = []
-        names = ch.split('\t')
+        names = ch.split("\t")
+        ignore_names = []
+        valid_names = ch.split("\t")[0].split(":")
+        if len(names) > 1:
+            ignore_names = names[1].split(":")
+
         for casting in castings:
             split_casting = casting.split('\t')
-            if names[0].strip().lower() == split_casting[0].strip().lower():
+            if valid_names[0].strip().lower() == split_casting[0].strip().lower():
                 casting_range = split_casting[1].split('-')
                 gender = casting_range[0][0].strip()
                 lo = int(casting_range[0][1:].strip())
                 hi = int(casting_range[1].strip())
                 collect.append((gender, lo, hi))
-        mapping.append((names[0].strip(), list.copy([x.strip() for x in names[1:]]), list.copy(collect)))
+        mapping.append((valid_names[0].strip(), list.copy([x.strip() for x in valid_names[1:]]), list.copy([x.strip() for x in ignore_names]), list.copy(collect)))
         collect.clear()
 
     return mapping
@@ -99,6 +147,7 @@ def speaker_to_casting(speaker, config, ratio=LEVENSHTEIN_DT_DEFAULT):
         hi = str(entry['casting']['hi']).rjust(2, '0')
 
         nicknames = [x.lower() for x in entry['nicknames']]
+
         if speaker.lower() == entry['name'].lower() or speaker.lower() in nicknames:
             return entry['name'], f'{gender}{lo}-{hi}'
 
@@ -107,8 +156,15 @@ def speaker_to_casting(speaker, config, ratio=LEVENSHTEIN_DT_DEFAULT):
                             f'{x["casting"]["gender"]}{str(x["casting"]["lo"]).rjust(2, "0")}-{str(x["casting"]["hi"]).rjust(2, "0")}') for x in cfg_data if fzw.ratio(speaker, x["name"]) > ratio],
                           reverse=True, key=lambda x: x[1])
 
+    ignore = [x.lower() for x in entry['ignore']]
     if len(fuzzed_names) > 0:
-        return fuzzed_names[0][0], fuzzed_names[0][2]
+        fuzzed_name = fuzzed_names[0][0]
+        fuzzed_age = fuzzed_names[0][2]
+        if fuzzed_name.lower() in ignore:
+            fuzzed_name = speaker
+            fuzzed_age = age_casting
+
+        return fuzzed_name, fuzzed_age
 
     return speaker, age_casting
 
@@ -136,7 +192,6 @@ def normalised_script(path, schema_path, speaker_config_path, ratio=LEVENSHTEIN_
 
     collect = []
     additional = {}
-    id = 0
     prev_start = ''
     prev_end = ''
 
@@ -152,38 +207,66 @@ def normalised_script(path, schema_path, speaker_config_path, ratio=LEVENSHTEIN_
 
             if title == 'speaker':
                 characters_raw = [SPEAKER_NAME_DEFAULT] if value.strip() == '' else [x for x in value.split(',') if x.strip() != '']
-                increment = len(characters_raw) - 1
                 for c in characters_raw:
-                    names = c[0] if c.strip() == '' else c.lower().split(' to ')[0]
-                    additional['id'] = str(id)
-                    if len(characters_raw) > 1 and increment != 0:
-                        id += 1
-                        increment -= 1
+                    names = c[0].lower().strip() if c.strip() == '' else c.lower().split(' to ')[0].strip()
                     additional['start'] = prev_start
                     additional['end'] = prev_end
-                    corrected_speaker, age_range = speaker_to_casting(names.strip(), config)
+
+                    canonical_speaker = names
+                    if is_variation_of_speaker(names):
+                        variation_word = extract_variation_word(names)
+
+                        if variation_word is None:
+                            raise Exception("variation word could not be found")
+
+                        canonical_speaker = re.sub(variation_word.lower(), "", names.lower()).strip()
+
+                    corrected_speaker, age_range = speaker_to_casting(canonical_speaker.strip(), config)
                     additional['character'] = corrected_speaker.upper()
                     additional['age'] = age_range
+                    additional['line'] = ''
                     collect.append(dict.copy(additional))
                     additional.clear()
 
             if title == 'line':
                 lines_raw = value.split('- ')
                 li = 0
+                glob_character_index = 0
                 for ll in lines_raw:
                     collect_index = min(li, len(collect) - 1)
                     current_speaker = collect[collect_index]['character']
+                    existing_line = collect[collect_index]['line']
                     stripped = ll.strip().replace('\n', ' ')
-                    collect[collect_index]['line'] = f'[{current_speaker}] {stripped}'
+
+                    if existing_line == '':
+                        collect[collect_index]['line'] = f'[{current_speaker}] {stripped}'
+                    else:
+                        if is_globbed_speaker(current_speaker):
+                            collect[glob_character_index]['line'] += f' - {stripped}'
+                        else:
+                            collect.append({
+                                               'start': collect[collect_index]['start'],
+                                               'end': collect[collect_index]['end'],
+                                               'character': SPEAKER_NAME_DEFAULT,
+                                               'age': SPEAKER_CASTING_DEFAULT,
+                                               'line': f'[{SPEAKER_NAME_DEFAULT}] {stripped}'
+                                           })
+
                     li += 1
+                    if is_globbed_speaker(current_speaker):
+                        glob_character_index = collect_index
+
                 if li < len(collect):
                     for ii in range(li, len(collect)):
                         collect[ii]['line'] = f'[{collect[ii]["character"]}] (NO LINE)'
 
-        id += 1
-
-        for c in collect:
-            parsed_lines.append(dict.copy(c))
+        id_start = len(parsed_lines)
+        offset = 0
+        for i, c in enumerate(collect):
+            if re.search("\(NO LINE\)", c['line']) is not None:
+                offset -= 1
+            else:
+                parsed_lines.append({ 'id': str(id_start + i + offset), **dict.copy(c) })
 
         collect.clear()
         additional.clear()

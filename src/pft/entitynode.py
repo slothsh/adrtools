@@ -57,6 +57,8 @@ class EntityNode:
         for i, c in enumerate(expression):
             # first stop word case
             if found_delimiter is True and find_listeners is False:
+                if transfer.strip()[-3:] == ' to':
+                    transfer = transfer.strip()[0:-3]
                 speakers.append(transfer.strip())
                 transfer = ''
                 find_listeners = True
@@ -90,6 +92,7 @@ class EntityNode:
                 transfer += c
 
             # eat and store stop words
+            # TODO: user-defined predicate for delimiter
             found_delimiter = c.lower() == ' ' and expression[i - 3] == ' ' and expression[i - 2] == 't' and expression[i - 1] == 'o'
 
         return ((speakers, listeners), expression[stop_index:])
@@ -121,6 +124,7 @@ def main():
     # determine how many speakers there are by counting 'speaker declarations'
     a = EntityNode(raw_str)
     a.print()
+
 
 if __name__ == "__main__":
     main()
