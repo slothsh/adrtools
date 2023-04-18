@@ -47,8 +47,8 @@ def process(paths, schema, cfg_path, ratio, ext, out, prefix, dry_run):
             sorted_cues = sorted(flattened_cues, key=lambda x: x['start'])
 
         except Exception as e:
-            eprint(f'error: failed to normalise script: {data_path}')
-            eprint(f'message: {e}')
+            print(f"{PROGRAM_NAME}: [{colored('!', 'red')}] exception was raised for file @ {data_path}")
+            print(f"{PROGRAM_NAME}: [{colored('!', 'red')}] reason: {e}")
             continue
 
         out_tokens = file_names(data_path)

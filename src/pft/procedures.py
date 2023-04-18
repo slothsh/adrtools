@@ -156,10 +156,11 @@ def speaker_to_casting(speaker, config, ratio=LEVENSHTEIN_DT_DEFAULT):
                             f'{x["casting"]["gender"]}{str(x["casting"]["lo"]).rjust(2, "0")}-{str(x["casting"]["hi"]).rjust(2, "0")}') for x in cfg_data if fzw.ratio(speaker, x["name"]) > ratio],
                           reverse=True, key=lambda x: x[1])
 
-    ignore = [x.lower() for x in entry['ignore']]
     if len(fuzzed_names) > 0:
         fuzzed_name = fuzzed_names[0][0]
         fuzzed_age = fuzzed_names[0][2]
+        # ignore = [x.lower() for x in cfg_data[speaker]['ignore']]
+        ignore = [[y.lower() for y in x["ignore"] if x["name"] == speaker] for x in cfg_data]
         if fuzzed_name.lower() in ignore:
             fuzzed_name = speaker
             fuzzed_age = age_casting
@@ -188,7 +189,7 @@ def normalised_script(path, schema_path, speaker_config_path, ratio=LEVENSHTEIN_
         data = script_to_list(path, schema_path)
         config = json.load(open(speaker_config_path, 'r'))
     except Exception as e:
-        print(e)
+        raise e
 
     collect = []
     additional = {}
@@ -288,7 +289,7 @@ def script_to_list(path, schema_path):
         with open(absolute_schema, 'r') as file:
             headers = json.load(file)
     except Exception as e:
-        print(e)
+        raise e
 
     all_tables = Document(absolute_path).tables
     flattened_schema = [(x['key'], x['synonyms']) for x in headers['header_fields']]
