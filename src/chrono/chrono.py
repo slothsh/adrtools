@@ -57,6 +57,11 @@ def timecode_to_ticks(timecode, fps=FPS_DEFAULT):
     return (tc_parts[0] * 3600) + (tc_parts[1] * 60) + (tc_parts[2]) + (tc_parts[3] / fps)
 
 
+def timecode_to_frames(timecode, fps=FPS_DEFAULT):
+    tc_parts = [int(x) * fps for x in timecode.split(":")]
+    return (tc_parts[0] * 3600) + (tc_parts[1] * 60) + (tc_parts[2]) + (tc_parts[3] // fps)
+
+
 def timeregion_merge_sequence(sequence):
     # TODO: assert sequence is, in fact, in sequential order
     start = sequence[0]._start

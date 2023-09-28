@@ -1,4 +1,3 @@
-#!/usr/bin/env python3.11
 from debug.console import eprint
 from pft import normalised_script
 from utils import file_names, get_ext_files, group_items, validate_directory
