@@ -31,7 +31,8 @@ def setup_package():
                 'adr-pftscript2tsv = cltools.pftscript2tsv:main',
                 'adr-pftgenspeakers = cltools.pftgenspeakers:main',
                 'adr-pftgetcharacters = cltools.pftgetcharacters:main',
-                'adr-mediaruntime = cltools.mediaruntime:main'
+                'adr-mediaruntime = cltools.mediaruntime:main',
+                'adr-mergecues = cltools.mergecues:main'
             ]
         },
         license="MIT",
@@ -41,7 +42,7 @@ def setup_package():
         author="Stefan Olivier",
         author_email="s.olivier1194@gmail.com",
         platforms=["Windows", "Linux", "Unix", "Mac OS-X"],
-        install_requires=['docx', 'tableschema', 'fuzzywuzzy'],
+        install_requires=['docx', 'tableschema', 'fuzzywuzzy', 'pandas'],
         classifiers=[
             "Development Status :: 1 - Planning",
             "License :: OSI Approved :: MIT License",

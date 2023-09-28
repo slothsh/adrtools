@@ -3,8 +3,10 @@ import re
 TICKS_RESOLUTION = 1000
 TICKS_MAX_GAP = TICKS_RESOLUTION * 5
 FPS_DEFAULT = 25.0
-TICKS_IDEAL_LENGTH = 5 * TICKS_RESOLUTION
-TICKS_MAX_LENGTH = 8 * TICKS_RESOLUTION
+IDEAL_SECONDS = 5
+MAX_SECONDS = 8
+TICKS_IDEAL_LENGTH = IDEAL_SECONDS * TICKS_RESOLUTION
+TICKS_MAX_LENGTH = MAX_SECONDS * TICKS_RESOLUTION
 
 # def get_character_casting(character):
 #     matched_casting = [(x['gender'], x['age_lo'], x['age_hi']) for x in CASTING_TABLE if x['character'] == character.upper()]
@@ -63,9 +65,12 @@ def timeregion_merge_sequence(sequence):
     return TimeRegion(start, end, fps)
 
 
-def timeregion_make_subsequences(sequence, ignore=[]):
+def timeregion_make_subsequences(sequence, ignore=[], ideal_duration=IDEAL_SECONDS, max_duration=MAX_SECONDS):
     sub_sequence = []
     merged_sequences = []
+
+    ideal_duration_ticks = ideal_duration * TICKS_RESOLUTION
+    max_duration_ticks = max_duration * TICKS_RESOLUTION
 
     acc = 0.0
     current_start = 0.0
@@ -96,16 +101,16 @@ def timeregion_make_subsequences(sequence, ignore=[]):
             next_region = sequence[i + 1]['region']
             next_duration = (next_region._end - current_start)._ticks
 
-            if next_duration >= TICKS_IDEAL_LENGTH * region._fps:
+            if next_duration >= ideal_duration_ticks * region._fps:
                 merge_early = True
 
             if (next_region._start - region._end)._ticks <= TICKS_MAX_GAP:
                 shared_boundary = True
 
-            if next_duration >= TICKS_MAX_LENGTH * region._fps:
+            if next_duration >= max_duration_ticks * region._fps:
                 gt_max_length = True
 
-        if (acc >= (TICKS_IDEAL_LENGTH * region._fps) and not shared_boundary) or (merge_early and not shared_boundary) or (gt_max_length) or i + 1 == total_entries:
+        if (acc >= (ideal_duration_ticks * region._fps) and not shared_boundary) or (merge_early and not shared_boundary) or (gt_max_length) or i + 1 == total_entries:
             merged_region = timeregion_merge_sequence(sub_sequence)
             merged_sequences.append({
                                         "age": actor,
