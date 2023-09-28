@@ -32,7 +32,10 @@ def setup_package():
                 'adr-pftgenspeakers = cltools.pftgenspeakers:main',
                 'adr-pftgetcharacters = cltools.pftgetcharacters:main',
                 'adr-mediaruntime = cltools.mediaruntime:main',
-                'adr-mergecues = cltools.mergecues:main'
+                'adr-mergecues = cltools.mergecues:main',
+                'adr-cuedensity = cltools.cuedensity:main',
+                'adr-worddensity = cltools.worddensity:main',
+                'adr-characterdensity = cltools.characterdensity:main'
             ]
         },
         license="MIT",
