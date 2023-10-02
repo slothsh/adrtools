@@ -12,10 +12,11 @@ from chrono import timecode_to_frames
 import pandas as pd
 import re
 
-PROGRAM_NAME = "worddensity"
+PROGRAM_NAME = "characterdensity"
 
 def hash_character(character, section):
     return hash(character + str(section))
+
 
 def cue_weight(window_start, window_end, cue_start, cue_end):
     cue_length = cue_end - cue_start
@@ -29,19 +30,22 @@ def cue_weight(window_start, window_end, cue_start, cue_end):
     return 0.0
 
 
-def process(paths, run_time_seconds, frame_rate, ext, out, prefix, dry_run):
-    # Calculate total number of frames of program
-    total_program_frames = run_time_seconds * frame_rate
-    timeline_window_size = 100
-    program_window_size = total_program_frames // timeline_window_size
-    # empty_timeline = [[x, 0] for x in range(total_program_frames)]
-    empty_timeline = [[x, x * program_window_size, 0.0] for x in range(timeline_window_size)]
+def get_largest_timecode(data_frame, fps):
+    sorted_data_frame = data_frame.sort_values(by=["id"], ascending=False)
+    return timecode_to_frames(sorted_data_frame.iloc[0].loc["tcout"], fps)
 
-    # Map all character timelines
+
+def process(paths, run_time_seconds, frame_rate, ext, out, prefix, dry_run):
     for data_path in paths:
         try:
             print(f"{PROGRAM_NAME}: [{colored('-', 'yellow')}] processing file @ {data_path}")
+
             all_lines = pd.read_csv(data_path, delimiter='\t')
+            total_program_frames = run_time_seconds * frame_rate if run_time_seconds > 0 else get_largest_timecode(all_lines, frame_rate) * frame_rate
+            timeline_window_size = 100
+            program_window_size = total_program_frames // timeline_window_size
+            empty_timeline = [[x, x * program_window_size, 0.0] for x in range(timeline_window_size)]
+
             character_column = all_lines.columns.get_loc("character")
             tc_start_column = all_lines.columns.get_loc("tcin")
             tc_end_column = all_lines.columns.get_loc("tcout")

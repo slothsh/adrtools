@@ -1,6 +1,5 @@
 #!/usr/bin/env python3.11
 from debug.console import eprint
-from pft import normalised_script
 from utils import file_names, get_ext_files, group_items, validate_directory
 import os
 import sys
@@ -26,20 +25,22 @@ def cue_weight(window_start, window_end, cue_start, cue_end):
     return 0.0
 
 
+def get_largest_timecode(data_frame, fps):
+    sorted_data_frame = data_frame.sort_values(by=["id"], ascending=False)
+    return timecode_to_frames(sorted_data_frame.iloc[0].loc["tcout"], fps)
+
 
 def process(paths, run_time_seconds, frame_rate, ext, out, prefix, dry_run):
-    # Calculate total number of frames of program
-    total_program_frames = run_time_seconds * frame_rate
-    timeline_window_size = 100
-    program_window_size = total_program_frames // timeline_window_size
-    # empty_timeline = [[x, 0] for x in range(total_program_frames)]
-    empty_timeline = [[x, x * program_window_size, 0.0] for x in range(timeline_window_size)]
-
-    # Map all character timelines
     for data_path in paths:
         try:
             print(f"{PROGRAM_NAME}: [{colored('-', 'yellow')}] processing file @ {data_path}")
+
             all_lines = pd.read_csv(data_path, delimiter='\t')
+            total_program_frames = run_time_seconds * frame_rate if run_time_seconds > 0 else get_largest_timecode(all_lines, frame_rate) * frame_rate
+            timeline_window_size = 100
+            program_window_size = total_program_frames // timeline_window_size
+            empty_timeline = [[x, x * program_window_size, 0.0] for x in range(timeline_window_size)]
+
             tc_start_column = all_lines.columns.get_loc("tcin")
             tc_end_column = all_lines.columns.get_loc("tcout")
 
