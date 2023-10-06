@@ -19,6 +19,8 @@ SPEAKER_VARIATION_WORDS = [
     '\'s +voice',
     ' +voice',
     ' +on +phone',
+    ' +over +the +phone',
+    ' +over +phone',
     ' +over +call',
     ' +on +call',
     ' +thinking',
@@ -26,7 +28,8 @@ SPEAKER_VARIATION_WORDS = [
     '\'s +inside +voice',
     ' +inside +voice',
     '\'s +mind +voice',
-    ' +mind +voice'
+    ' +mind +voice',
+    ' +reading'
 ]
 
 # ----+----+----+----+----+----+----+----+----+----+----+----+----+----+----+
