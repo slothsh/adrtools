@@ -45,7 +45,7 @@ def setup_package():
         author="Stefan Olivier",
         author_email="s.olivier1194@gmail.com",
         platforms=["Windows", "Linux", "Unix", "Mac OS-X"],
-        install_requires=['docx', 'tableschema', 'fuzzywuzzy', 'pandas'],
+        install_requires=['docx', 'tableschema', 'fuzzywuzzy', 'pandas', 'termcolor', 'python-Levenshtein'],
         classifiers=[
             "Development Status :: 1 - Planning",
             "License :: OSI Approved :: MIT License",
